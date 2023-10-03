@@ -1,6 +1,8 @@
 use std::io::{Error, ErrorKind};
 use std::str::FromStr;
 
+use warp::Filter;
+
 #[derive(Debug)]
 struct Question {
     id: QuestionId,
@@ -33,14 +35,19 @@ impl Question {
     }
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let id = QuestionId::from_str("1").unwrap();
 
+    // Leaving this here for now
     let question = Question::new(
         id,
         "First question!".to_string(),
         "Content of the question".to_string(),
         Some(vec!["faq".to_string()]),
     );
-    println!("{:?}", question);
+
+    let hello = warp::get().map(|| format!("Hello, world!"));
+
+    warp::serve(hello).run(([127, 0, 0, 1], 3030)).await;
 }
