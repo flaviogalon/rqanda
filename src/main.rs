@@ -1,11 +1,9 @@
-use std::io::{Error, ErrorKind};
-use std::str::FromStr;
-
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use warp::filters::cors::CorsForbidden;
-use warp::{http::Method, http::StatusCode, reject::Reject, Filter, Rejection, Reply};
+use warp::{http::Method, http::StatusCode, Filter, Rejection, Reply};
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct Question {
     id: QuestionId,
     title: String,
@@ -13,32 +11,24 @@ struct Question {
     tags: Option<Vec<String>>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone, Eq, PartialEq, Hash)]
 struct QuestionId(String);
 
-#[derive(Debug)]
-struct InvalidId;
-impl Reject for InvalidId {}
-
-impl FromStr for QuestionId {
-    type Err = std::io::Error;
-
-    fn from_str(id: &str) -> Result<Self, Self::Err> {
-        match id.is_empty() {
-            false => Ok(QuestionId(id.to_string())),
-            true => Err(Error::new(ErrorKind::InvalidInput, "No id provided")),
-        }
-    }
+#[derive(Clone)]
+struct Store {
+    questions: HashMap<QuestionId, Question>,
 }
 
-impl Question {
-    fn new(id: QuestionId, title: String, content: String, tags: Option<Vec<String>>) -> Self {
-        Question {
-            id,
-            title,
-            content,
-            tags,
+impl Store {
+    fn new() -> Self {
+        Store {
+            questions: Self::init(),
         }
+    }
+
+    fn init() -> HashMap<QuestionId, Question> {
+        let file = include_str!("../questions.json");
+        serde_json::from_str(file).expect("Can't read questions.json")
     }
 }
 
@@ -48,11 +38,6 @@ async fn return_error(r: Rejection) -> Result<impl Reply, Rejection> {
             error.to_string(),
             StatusCode::FORBIDDEN,
         ))
-    } else if let Some(_invalid_id) = r.find::<InvalidId>() {
-        Ok(warp::reply::with_status(
-            "No valid ID presented".to_string(),
-            StatusCode::UNPROCESSABLE_ENTITY,
-        ))
     } else {
         Ok(warp::reply::with_status(
             "Route not found".to_string(),
@@ -61,19 +46,10 @@ async fn return_error(r: Rejection) -> Result<impl Reply, Rejection> {
     }
 }
 
-async fn get_questions() -> Result<impl warp::Reply, warp::Rejection> {
-    let id = QuestionId::from_str("1").unwrap();
-    let question = Question::new(
-        id,
-        "First question!".to_string(),
-        "Content of the question".to_string(),
-        Some(vec!["faq".to_string()]),
-    );
+async fn get_questions(store: Store) -> Result<impl warp::Reply, warp::Rejection> {
+    let res: Vec<Question> = store.questions.values().cloned().collect();
 
-    match question.id.0.parse::<i32>() {
-        Err(_) => Err(warp::reject::custom(InvalidId)),
-        Ok(_) => Ok(warp::reply::json(&question)),
-    }
+    Ok(warp::reply::json(&res))
 }
 
 #[tokio::main]
@@ -85,9 +61,13 @@ async fn main() {
         .allow_header("content-type")
         .allow_methods(&[Method::PUT, Method::DELETE, Method::GET, Method::POST]);
 
+    let store = Store::new();
+    let store_filter = warp::any().map(move || store.clone());
+
     let get_items = warp::get()
         .and(warp::path("questions"))
         .and(warp::path::end())
+        .and(store_filter)
         .and_then(get_questions)
         .recover(return_error);
 
