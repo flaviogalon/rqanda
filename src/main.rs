@@ -111,11 +111,11 @@ async fn get_questions(
     query_params: HashMap<String, String>,
     store: Store,
 ) -> Result<impl warp::Reply, warp::Rejection> {
-    let limit: usize = store.questions.len();
+    let res: Vec<Question> = store.questions.values().cloned().collect();
 
     if !query_params.is_empty() {
+        let limit: usize = store.questions.len();
         let pagination = extract_pagination(query_params, limit)?;
-        let res: Vec<Question> = store.questions.values().cloned().collect();
         let res = &res[pagination.start..pagination.end];
         Ok(warp::reply::json(&res))
     } else {
