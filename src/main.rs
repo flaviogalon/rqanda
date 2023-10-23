@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::sync::Arc;
+use tokio::sync::RwLock;
 use warp::filters::cors::CorsForbidden;
 use warp::reject::Reject;
 use warp::{http::Method, http::StatusCode, Filter, Rejection, Reply};
@@ -17,13 +19,13 @@ struct QuestionId(String);
 
 #[derive(Clone)]
 struct Store {
-    questions: HashMap<QuestionId, Question>,
+    questions: Arc<RwLock<HashMap<QuestionId, Question>>>,
 }
 
 impl Store {
     fn new() -> Self {
         Store {
-            questions: Self::init(),
+            questions: Arc::new(RwLock::new(Self::init())),
         }
     }
 
@@ -111,17 +113,15 @@ async fn get_questions(
     query_params: HashMap<String, String>,
     store: Store,
 ) -> Result<impl warp::Reply, warp::Rejection> {
-    let res: Vec<Question> = store.questions.values().cloned().collect();
+    let res: Vec<Question> = store.questions.read().await.values().cloned().collect();
 
     if !query_params.is_empty() {
-        let limit: usize = store.questions.len();
+        let limit: usize = store.questions.read().await.len();
         let pagination = extract_pagination(query_params, limit)?;
         let res = &res[pagination.start..pagination.end];
-        Ok(warp::reply::json(&res))
-    } else {
-        let res: Vec<Question> = store.questions.values().cloned().collect();
-        Ok(warp::reply::json(&res))
+        return Ok(warp::reply::json(&res));
     }
+    Ok(warp::reply::json(&res))
 }
 
 #[tokio::main]
