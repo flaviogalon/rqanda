@@ -53,7 +53,6 @@ async fn return_error(r: Rejection) -> Result<impl Reply, Rejection> {
             StatusCode::UNPROCESSABLE_ENTITY,
         ))
     } else {
-        println!("{:?}", r);
         Ok(warp::reply::with_status(
             "Route not found".to_string(),
             StatusCode::NOT_FOUND,
@@ -66,6 +65,7 @@ enum Error {
     ParseError(std::num::ParseIntError),
     MissingParameters,
     InvertedOrder,
+    QuestionNotFound,
 }
 
 impl std::fmt::Display for Error {
@@ -76,6 +76,7 @@ impl std::fmt::Display for Error {
             }
             Error::MissingParameters => write!(f, "Missing parameter"),
             Error::InvertedOrder => write!(f, "'start' can't be greater than 'end'"),
+            Error::QuestionNotFound => write!(f, "Question not found in store"),
         }
     }
 }
@@ -147,6 +148,24 @@ async fn add_question(
     ))
 }
 
+async fn update_question(
+    question_id: String,
+    store: Store,
+    question: Question,
+) -> Result<impl warp::Reply, warp::Rejection> {
+    match store
+        .questions
+        .write()
+        .await
+        .get_mut(&QuestionId(question_id))
+    {
+        Some(q) => *q = question,
+        None => return Err(warp::reject::custom(Error::QuestionNotFound)),
+    }
+
+    Ok(warp::reply::with_status("Question updated", StatusCode::OK))
+}
+
 #[tokio::main]
 async fn main() {
     // Setting CORS policy in application level since we're serving a single instance
@@ -173,7 +192,19 @@ async fn main() {
         .and(warp::body::json())
         .and_then(add_question);
 
-    let routes = get_items.or(add_question).with(cors).recover(return_error);
+    let update_question = warp::put()
+        .and(warp::path("questions"))
+        .and(warp::path::param::<String>())
+        .and(warp::path::end())
+        .and(store_filter.clone())
+        .and(warp::body::json())
+        .and_then(update_question);
+
+    let routes = get_items
+        .or(add_question)
+        .or(update_question)
+        .with(cors)
+        .recover(return_error);
 
     warp::serve(routes).run(([127, 0, 0, 1], 3030)).await;
 }
