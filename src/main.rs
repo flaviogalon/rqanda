@@ -166,6 +166,13 @@ async fn update_question(
     Ok(warp::reply::with_status("Question updated", StatusCode::OK))
 }
 
+async fn remove_question(id: String, store: Store) -> Result<impl warp::Reply, warp::Rejection> {
+    match store.questions.write().await.remove(&QuestionId(id)) {
+        Some(_) => return Ok(warp::reply::with_status("Question deleted", StatusCode::OK)),
+        None => return Err(warp::reject::custom(Error::QuestionNotFound)),
+    }
+}
+
 #[tokio::main]
 async fn main() {
     // Setting CORS policy in application level since we're serving a single instance
@@ -200,9 +207,17 @@ async fn main() {
         .and(warp::body::json())
         .and_then(update_question);
 
+    let remove_question = warp::delete()
+        .and(warp::path("questions"))
+        .and(warp::path::param::<String>())
+        .and(warp::path::end())
+        .and(store_filter.clone())
+        .and_then(remove_question);
+
     let routes = get_items
         .or(add_question)
         .or(update_question)
+        .or(remove_question)
         .with(cors)
         .recover(return_error);
 

@@ -8,3 +8,4 @@ Things that I'd like to see but not sure if covered by the book:
 - [ ] Make `id` optional in body when updating questions
 - [ ] Don't override fields that are not updated
   - E.g: if the PUT request don't have `tags` it will be set to `None`
+- [ ] Get question by ID
