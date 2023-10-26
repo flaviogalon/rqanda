@@ -18,15 +18,27 @@ struct Question {
 #[derive(Debug, Deserialize, Serialize, Clone, Eq, PartialEq, Hash)]
 struct QuestionId(String);
 
+#[derive(Debug, Deserialize, Serialize, Clone, Eq, PartialEq, Hash)]
+struct AnswerId(String);
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct Answer {
+    id: AnswerId,
+    content: String,
+    question_id: QuestionId,
+}
+
 #[derive(Clone)]
 struct Store {
     questions: Arc<RwLock<HashMap<QuestionId, Question>>>,
+    answers: Arc<RwLock<HashMap<AnswerId, Answer>>>,
 }
 
 impl Store {
     fn new() -> Self {
         Store {
             questions: Arc::new(RwLock::new(Self::init())),
+            answers: Arc::new(RwLock::new(HashMap::new())),
         }
     }
 
@@ -173,6 +185,25 @@ async fn remove_question(id: String, store: Store) -> Result<impl warp::Reply, w
     }
 }
 
+async fn add_answer(
+    store: Store,
+    params: HashMap<String, String>,
+) -> Result<impl warp::Reply, warp::Rejection> {
+    let answer = Answer {
+        id: AnswerId("1".to_string()),
+        content: params.get("content").unwrap().to_string(),
+        question_id: QuestionId(params.get("questionId").unwrap().to_string()),
+    };
+
+    store
+        .answers
+        .write()
+        .await
+        .insert(answer.id.clone(), answer);
+
+    Ok(warp::reply::with_status("Answer added", StatusCode::OK))
+}
+
 #[tokio::main]
 async fn main() {
     // Setting CORS policy in application level since we're serving a single instance
@@ -214,8 +245,16 @@ async fn main() {
         .and(store_filter.clone())
         .and_then(remove_question);
 
+    let add_answer = warp::post()
+        .and(warp::path("answers"))
+        .and(warp::path::end())
+        .and(store_filter.clone())
+        .and(warp::body::form())
+        .and_then(add_answer);
+
     let routes = get_items
         .or(add_question)
+        .or(add_answer)
         .or(update_question)
         .or(remove_question)
         .with(cors)
