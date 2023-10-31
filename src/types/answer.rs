@@ -1,0 +1,13 @@
+use serde::{Deserialize, Serialize};
+
+use crate::types::question::QuestionId;
+
+#[derive(Debug, Deserialize, Serialize, Clone, Eq, PartialEq, Hash)]
+pub struct AnswerId(pub String);
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Answer {
+    pub id: AnswerId,
+    pub content: String,
+    pub question_id: QuestionId,
+}
