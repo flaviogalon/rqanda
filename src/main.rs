@@ -7,6 +7,12 @@ mod types;
 
 #[tokio::main]
 async fn main() {
+    log4rs::init_file("config/log4rs.yaml", Default::default())
+        .expect("Invalid log configuration file");
+
+    log::error!("This is an error");
+    log::info!("This is an info");
+    log::warn!("This is a warning!");
     // Setting CORS policy in application level since we're serving a single instance
     // of the application without an infra-level on front.
     let cors = warp::cors()
