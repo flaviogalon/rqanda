@@ -11,6 +11,12 @@ pub struct Pagination {
     pub end: usize,
 }
 
+impl std::fmt::Display for Pagination {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "start: {}, end: {}", self.start, self.end)
+    }
+}
+
 /** Extract query parameters from the `/questions` route
     ## Example query
     GET requests to this route can have a pagination attached so we just return

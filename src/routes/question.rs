@@ -9,15 +9,19 @@ use crate::types::question::{Question, QuestionId};
 pub async fn get_questions(
     query_params: HashMap<String, String>,
     store: Store,
+    id: String,
 ) -> Result<impl warp::Reply, warp::Rejection> {
+    log::info!("{} Will start querying questions", id);
     let res: Vec<Question> = store.questions.read().await.values().cloned().collect();
 
     if !query_params.is_empty() {
         let limit: usize = store.questions.read().await.len();
         let pagination = extract_pagination(query_params, limit)?;
+        log::info!("{} Pagination set to {}", id, &pagination);
         let res = &res[pagination.start..pagination.end];
         return Ok(warp::reply::json(&res));
     }
+    log::info!("{} No pagination used", id);
     Ok(warp::reply::json(&res))
 }
 
