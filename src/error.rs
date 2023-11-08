@@ -5,23 +5,27 @@ use warp::{
     Rejection, Reply,
 };
 
+use sqlx::error::Error as SqlxError;
+
 #[derive(Debug)]
 pub enum Error {
     ParseError(std::num::ParseIntError),
     MissingParameters,
     InvertedOrder,
     QuestionNotFound,
+    DatabaseQueryError(SqlxError),
 }
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match *self {
+        match &*self {
             Error::ParseError(ref err) => {
                 write!(f, "Can't parse parameter: {}", err)
             }
             Error::MissingParameters => write!(f, "Missing parameter"),
             Error::InvertedOrder => write!(f, "'start' can't be greater than 'end'"),
             Error::QuestionNotFound => write!(f, "Question not found in store"),
+            Error::DatabaseQueryError(e) => write!(f, "error querying the DB: {}", e),
         }
     }
 }

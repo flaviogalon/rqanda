@@ -18,7 +18,9 @@ async fn main() {
         .allow_header("content-type")
         .allow_methods(&[Method::PUT, Method::DELETE, Method::GET, Method::POST]);
 
-    let store = store::Store::new();
+    let store =
+        store::Store::new("postgres://rqanda:%21%21rqanda%24%2586%25%250@localhost:5432/rqanda")
+            .await;
     let store_filter = warp::any().map(move || store.clone());
 
     tracing_subscriber::fmt()
@@ -56,25 +58,25 @@ async fn main() {
         .and(warp::body::json())
         .and_then(routes::question::update_question);
 
-    let remove_question = warp::delete()
-        .and(warp::path("questions"))
-        .and(warp::path::param::<i32>())
-        .and(warp::path::end())
-        .and(store_filter.clone())
-        .and_then(routes::question::remove_question);
+    // let remove_question = warp::delete()
+    //     .and(warp::path("questions"))
+    //     .and(warp::path::param::<i32>())
+    //     .and(warp::path::end())
+    //     .and(store_filter.clone())
+    //     .and_then(routes::question::remove_question);
 
-    let add_answer = warp::post()
-        .and(warp::path("answers"))
-        .and(warp::path::end())
-        .and(store_filter.clone())
-        .and(warp::body::form())
-        .and_then(routes::answer::add_answer);
+    // let add_answer = warp::post()
+    //     .and(warp::path("answers"))
+    //     .and(warp::path::end())
+    //     .and(store_filter.clone())
+    //     .and(warp::body::form())
+    //     .and_then(routes::answer::add_answer);
 
     let routes = get_items
         .or(add_question)
-        .or(add_answer)
         .or(update_question)
-        .or(remove_question)
+        // .or(remove_question)
+        // .or(add_answer)
         .with(cors)
         .with(warp::trace::request())
         .recover(error::return_error);
