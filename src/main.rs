@@ -58,12 +58,12 @@ async fn main() {
         .and(warp::body::json())
         .and_then(routes::question::update_question);
 
-    // let remove_question = warp::delete()
-    //     .and(warp::path("questions"))
-    //     .and(warp::path::param::<i32>())
-    //     .and(warp::path::end())
-    //     .and(store_filter.clone())
-    //     .and_then(routes::question::remove_question);
+    let remove_question = warp::delete()
+        .and(warp::path("questions"))
+        .and(warp::path::param::<i32>())
+        .and(warp::path::end())
+        .and(store_filter.clone())
+        .and_then(routes::question::remove_question);
 
     // let add_answer = warp::post()
     //     .and(warp::path("answers"))
@@ -75,7 +75,7 @@ async fn main() {
     let routes = get_items
         .or(add_question)
         .or(update_question)
-        // .or(remove_question)
+        .or(remove_question)
         // .or(add_answer)
         .with(cors)
         .with(warp::trace::request())

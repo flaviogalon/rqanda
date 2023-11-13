@@ -114,4 +114,15 @@ impl Store {
             }
         }
     }
+
+    pub async fn remove_question(&self, question_id: i32) -> Result<bool, error::Error> {
+        match sqlx::query("DELETE FROM questions WHERE id = $1")
+            .bind(question_id)
+            .execute(&self.connection)
+            .await
+        {
+            Ok(status) => Ok(status.rows_affected() == 1),
+            Err(e) => Err(error::Error::DatabaseQueryError(e)),
+        }
+    }
 }
