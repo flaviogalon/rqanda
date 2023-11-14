@@ -2,6 +2,7 @@ use sqlx::postgres::{PgPool, PgPoolOptions, PgRow};
 use sqlx::Row;
 
 use crate::error;
+use crate::types::answer::{Answer, AnswerId, NewAnswer};
 use crate::types::question::{NewQuestion, Question, QuestionId, UpdateQuestion};
 use tracing::error;
 
@@ -122,7 +123,30 @@ impl Store {
             .await
         {
             Ok(status) => Ok(status.rows_affected() == 1),
-            Err(e) => Err(error::Error::DatabaseQueryError(e)),
+            Err(e) => {
+                error!("{}", e);
+                Err(error::Error::DatabaseQueryError(e))
+            }
+        }
+    }
+
+    pub async fn add_answer(&self, new_answer: NewAnswer) -> Result<Answer, error::Error> {
+        match sqlx::query("INSERT INTO answers (content, question_id) VALUES ($1, $2) RETURNING *")
+            .bind(new_answer.content)
+            .bind(new_answer.question_id.0)
+            .map(|row: PgRow| Answer {
+                id: AnswerId(row.get("id")),
+                content: row.get("content"),
+                question_id: QuestionId(row.get("question_id")),
+            })
+            .fetch_one(&self.connection)
+            .await
+        {
+            Ok(question) => Ok(question),
+            Err(e) => {
+                error!("{}", e);
+                Err(error::Error::DatabaseQueryError(e))
+            }
         }
     }
 }

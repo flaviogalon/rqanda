@@ -65,18 +65,18 @@ async fn main() {
         .and(store_filter.clone())
         .and_then(routes::question::remove_question);
 
-    // let add_answer = warp::post()
-    //     .and(warp::path("answers"))
-    //     .and(warp::path::end())
-    //     .and(store_filter.clone())
-    //     .and(warp::body::form())
-    //     .and_then(routes::answer::add_answer);
+    let add_answer = warp::post()
+        .and(warp::path("answers"))
+        .and(warp::path::end())
+        .and(store_filter.clone())
+        .and(warp::body::form())
+        .and_then(routes::answer::add_answer);
 
     let routes = get_items
         .or(add_question)
         .or(update_question)
         .or(remove_question)
-        // .or(add_answer)
+        .or(add_answer)
         .with(cors)
         .with(warp::trace::request())
         .recover(error::return_error);
