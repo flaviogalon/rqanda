@@ -47,7 +47,7 @@ impl Store {
             Ok(questions) => Ok(questions),
             Err(e) => {
                 error!("{}", e);
-                Err(error::Error::DatabaseQueryError(e))
+                Err(error::Error::DatabaseQueryError)
             }
         }
     }
@@ -71,7 +71,7 @@ impl Store {
             Ok(question) => Ok(question),
             Err(e) => {
                 error!("{}", e);
-                Err(error::Error::DatabaseQueryError(e))
+                Err(error::Error::DatabaseQueryError)
             }
         }
     }
@@ -111,7 +111,7 @@ impl Store {
             Ok(question) => Ok(question),
             Err(e) => {
                 error!("{}", e);
-                Err(error::Error::DatabaseQueryError(e))
+                Err(error::Error::DatabaseQueryError)
             }
         }
     }
@@ -125,7 +125,7 @@ impl Store {
             Ok(status) => Ok(status.rows_affected() == 1),
             Err(e) => {
                 error!("{}", e);
-                Err(error::Error::DatabaseQueryError(e))
+                Err(error::Error::DatabaseQueryError)
             }
         }
     }
@@ -145,7 +145,7 @@ impl Store {
             Ok(question) => Ok(question),
             Err(e) => {
                 error!("{}", e);
-                Err(error::Error::DatabaseQueryError(e))
+                Err(error::Error::DatabaseQueryError)
             }
         }
     }

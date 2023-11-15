@@ -5,15 +5,13 @@ use warp::{
     Rejection, Reply,
 };
 
-use sqlx::error::Error as SqlxError;
-
 #[derive(Debug)]
 pub enum Error {
     ParseError(std::num::ParseIntError),
     MissingParameters,
     InvertedOrder,
     QuestionNotFound,
-    DatabaseQueryError(SqlxError),
+    DatabaseQueryError,
 }
 
 impl std::fmt::Display for Error {
@@ -25,7 +23,7 @@ impl std::fmt::Display for Error {
             Error::MissingParameters => write!(f, "Missing parameter"),
             Error::InvertedOrder => write!(f, "'start' can't be greater than 'end'"),
             Error::QuestionNotFound => write!(f, "Question not found in store"),
-            Error::DatabaseQueryError(e) => write!(f, "error querying the DB: {}", e),
+            Error::DatabaseQueryError => write!(f, "Database error"),
         }
     }
 }
@@ -38,15 +36,20 @@ pub async fn return_error(r: Rejection) -> Result<impl Reply, Rejection> {
             error.to_string(),
             StatusCode::FORBIDDEN,
         ))
-    } else if let Some(error) = r.find::<Error>() {
+    } else if let Some(Error::InvertedOrder) = r.find() {
         Ok(warp::reply::with_status(
-            error.to_string(),
+            Error::InvertedOrder.to_string(),
             StatusCode::RANGE_NOT_SATISFIABLE,
         ))
     } else if let Some(error) = r.find::<BodyDeserializeError>() {
         Ok(warp::reply::with_status(
             error.to_string(),
             StatusCode::UNPROCESSABLE_ENTITY,
+        ))
+    } else if let Some(Error::DatabaseQueryError) = r.find() {
+        Ok(warp::reply::with_status(
+            Error::DatabaseQueryError.to_string(),
+            StatusCode::INTERNAL_SERVER_ERROR,
         ))
     } else {
         Ok(warp::reply::with_status(
