@@ -35,24 +35,21 @@ impl std::fmt::Display for Pagination {
     ```
 */
 pub fn extract_pagination(params: HashMap<String, String>) -> Result<Pagination, error::Error> {
-    if !params.contains_key("start") || !params.contains_key("end") {
-        return Err(error::Error::MissingParameters);
+    let limit: Option<i32>;
+
+    if let Some(value) = params.get("end") {
+        limit = Some(value.parse::<i32>().map_err(error::Error::ParseError)?);
+    } else {
+        limit = None;
     }
 
-    let limit: Option<i32> = Some(
-        params
-            .get("limit")
-            .unwrap()
-            .parse::<i32>()
-            .map_err(error::Error::ParseError)?,
-    );
-    let mut offset: i32 = params
-        .get("offset")
-        .unwrap()
+    let offset: i32 = params
+        .get("start")
+        .unwrap_or(&String::from("0"))
         .parse::<i32>()
         .map_err(error::Error::ParseError)?;
 
-    if limit.is_some() && limit.unwrap() > offset {
+    if limit.is_some() && limit.unwrap() < offset {
         return Err(error::Error::InvertedOrder);
     }
 
