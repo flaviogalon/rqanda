@@ -34,3 +34,4 @@ Things that I'd like to see but not sure if covered by the book:
 - [ ] Add a get answer by question ID endpoint?
 - [ ] Wait for a connection to the DB before accepting requests
 - [ ] Run migrations in dockerfile (when I have one 🙃)
+  - I might want to have an script to do this instead of having to install the CLI just for this in a "prod like" scenario...
