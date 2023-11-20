@@ -13,6 +13,17 @@ docker compose up -d
 cargo run
 ```
 
+## Running migrations
+For now these steps are manual
+### Apply migration
+```shell
+sqlx migrate run -D {db_url}
+```
+### Revert migration
+```shell
+sqlx migrate revert -D {db_url}
+``` 
+
 ## TODO
 Things that I'd like to see but not sure if covered by the book:
 - [ ] Handle duplication in POST /questions
@@ -22,3 +33,4 @@ Things that I'd like to see but not sure if covered by the book:
 - [ ] Check question ID before saving an answer
 - [ ] Add a get answer by question ID endpoint?
 - [ ] Wait for a connection to the DB before accepting requests
+- [ ] Run migrations in dockerfile (when I have one 🙃)
