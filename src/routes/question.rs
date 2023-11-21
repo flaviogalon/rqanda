@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 use warp::http::StatusCode;
 
-use tracing::{info, instrument};
+use tracing::{error, info, instrument};
 
-use crate::error::Error;
+use crate::get_bad_words_api_key;
 use crate::store::Store;
-use crate::types::pagination::{self, extract_pagination, Pagination};
-use crate::types::question::{NewQuestion, Question, QuestionId, UpdateQuestion};
+use crate::types::pagination::{extract_pagination, Pagination};
+use crate::types::question::{NewQuestion, Question, UpdateQuestion};
 
 #[instrument]
 pub async fn get_questions(
@@ -36,6 +36,22 @@ pub async fn add_question(
     store: Store,
     new_question: NewQuestion,
 ) -> Result<impl warp::Reply, warp::Rejection> {
+    // Calling bad words api here for now
+    let client = reqwest::Client::new();
+    // Making the request in the unsafest way possible just for fun
+    let res = client
+        .post("https://api.apilayer.com/bad_words?censor_character=*")
+        .header("apikey", get_bad_words_api_key())
+        .body("a list with shit words")
+        .send()
+        .await
+        .expect("Error calling external API")
+        .text()
+        .await
+        .expect("Error parsing response from external API");
+
+    println!("{}", res);
+
     let question = match store.add_question(new_question).await {
         Ok(question) => question,
         Err(e) => return Err(warp::reject::custom(e)),

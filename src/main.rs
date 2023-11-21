@@ -1,3 +1,7 @@
+use std::sync::{Mutex, Once};
+
+use dotenv::dotenv;
+use lazy_static::lazy_static;
 use tracing_subscriber::fmt::format::FmtSpan;
 use warp::{http::Method, Filter};
 
@@ -6,8 +10,21 @@ mod routes;
 mod store;
 mod types;
 
+lazy_static! {
+    static ref BAD_WORDS_API_KEY: Mutex<String> = Mutex::new(String::new());
+}
+
+pub fn get_bad_words_api_key() -> String {
+    BAD_WORDS_API_KEY.lock().unwrap().clone()
+}
+
 #[tokio::main]
 async fn main() {
+    // load env variables
+    dotenv().ok();
+    *BAD_WORDS_API_KEY.lock().unwrap() =
+        std::env::var("BAD_WORDS_API_KEY").expect("BAD_WORDS_API_KEY should be set");
+
     let log_filter =
         std::env::var("RUST_LOG").unwrap_or_else(|_| "rqanda=info,warp=error".to_owned());
 
